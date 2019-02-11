@@ -1128,15 +1128,19 @@ def connections(args):
             return
 
         with db.create_session() as session:
-            conns = session.query(Connection.conn_id, Connection.conn_type,
+            q = session.query(Connection.conn_id, Connection.conn_type,
                                   Connection.host, Connection.port,
                                   Connection.is_encrypted,
                                   Connection.is_extra_encrypted,
-                                  Connection.extra).all()
-            conns = [map(reprlib.repr, conn) for conn in conns]
-            msg = tabulate(conns, ['Conn Id', 'Conn Type', 'Host', 'Port',
-                                   'Is Encrypted', 'Is Extra Encrypted', 'Extra'],
-                           tablefmt="fancy_grid")
+                                  Connection.extra)
+            if args.json:
+                keys=['conn_id', 'conn_type', 'host', 'port', 'is_encrypted', 'is_extra_encrypted', 'extra']
+                msg = json.dumps([dict(zip(keys, row)) for row in q.values()])
+            else:
+                conns = [map(reprlib.repr, conn) for conn in q.all()]
+                msg = tabulate(conns, ['Conn Id', 'Conn Type', 'Host', 'Port',
+                                       'Is Encrypted', 'Is Extra Encrypted', 'Extra'],
+                               tablefmt="fancy_grid")
             if sys.version_info[0] < 3:
                 msg = msg.encode('utf-8')
             print(msg)
@@ -2051,7 +2055,7 @@ class CLIFactory(object):
         }, {
             'func': connections,
             'help': "List/Add/Delete connections",
-            'args': ('list_connections', 'add_connection', 'delete_connection',
+            'args': ('list_connections', 'add_connection', 'delete_connection', 'json',
                      'conn_id', 'conn_uri', 'conn_extra') + tuple(alternative_conn_specs),
         }, {
             'func': create_user,
